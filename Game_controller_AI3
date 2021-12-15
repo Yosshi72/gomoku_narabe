@@ -67,6 +67,7 @@ public class GameController_AI3 : MonoBehaviour
     private int normal3=0;
 
     private int move_count=0;
+    private int node_count=0;
     // Start is called before the first frame update
     void Start()
     {
@@ -133,6 +134,8 @@ public class GameController_AI3 : MonoBehaviour
                 currentPlayer = BLACK;
                 // Debug.Log("Player2 : " + z + ", " + x);
             }
+            // Debug.Log(node_count);
+            node_count=0;
             line_neighborhood(WHITE,z,x,5);
             if(flag==1){
                 Debug.Log("Player2 won.");
@@ -267,17 +270,6 @@ public class GameController_AI3 : MonoBehaviour
             }
         }
     }
-
-    public void DebugArray()
-    {
-        for (int i = 0; i < size; ++i)
-        {
-            for (int j = 0; j < size; ++j)
-            {
-                Debug.Log("(i,j)=(" + i + "," + j + ")=" + squares[i, j]);
-            }
-        }
-    }
     private void decideAIMove(int color)
     {
         float score;
@@ -290,11 +282,12 @@ public class GameController_AI3 : MonoBehaviour
         // txt.WriteLine(sw.ElapsedMilliseconds);
         // txt.Flush();
         // txt.Close();
-        // Debug.Log("Final eval: "+score);
+        Debug.Log("Final eval: "+score+","+nextZ+","+nextX);
     }
 
     private float alphaBetaSearch(int depth,int color,float alpha,float beta,int cz,int cx,int pz,int px)
     { 
+        node_count++;
         float score, eval;
         if (depth == MAXDEPTH)
         {
@@ -338,8 +331,8 @@ public class GameController_AI3 : MonoBehaviour
                         else
                         {
                             eval = alphaBetaSearch(depth + 1, color * (-1), alpha, beta,i,j,cz,cx);
-                            // if(depth==1 &&squares[i,j]!=EMPTY){
-                            //     Debug.Log("depth: "+depth+", eval: "+eval+",now:["+j+"," +i+"], prev: ["+cx+", "+cz);
+                            // if(depth==0 &&squares[i,j]!=EMPTY){
+                            //     Debug.Log("depth: "+depth+",eval: "+eval+",now:["+j+"," +i+"], prev: ["+cx+", "+cz);
                             // }                            
                             squares[i, j] = EMPTY;
                             if (PlayerColor == color)
@@ -503,11 +496,11 @@ public class GameController_AI3 : MonoBehaviour
         }
     }
 
-    //0:5連, 1:両側空き4連, 2:4連, 3:両側空き３連, 4: 雰囲気的によさげ 5:その他, 6: 直線状4*2つ,7:6連
+    //0:5連, 1:両側空き4連, 2:4連, 3:両側空き３連, 4: 3or2 5:その他, 6: 直線状4*2つ,7:6連
     //0:WIN, [6,7]:Prohibited, 1:リーチ
     int judge_Blackconnect(string str){
         string[] B4E1=new string[5]{"EBBBB","BEBBB","BBEBB","BBBEB","BBBBE"};
-        string[] B3E1=new string[4]{"EEBBBE","EBEBBE","EBBEBE","EBBBEE"};
+        string[] B3E1=new string[4]{"BBB","BEBB","BBEB","BBB"};
         string[] straight44=new string[3]{"BEBBBEB","BBEBBEBB","BBBEBEBBB"};
 
         bool five_B=Regex.IsMatch(str,"BBBBB");
@@ -535,31 +528,30 @@ public class GameController_AI3 : MonoBehaviour
         foreach(string ans in B4E1){
             bool a=Regex.IsMatch(str,ans);
             if(a){
-                bool a1=Regex.IsMatch(str,"B"+ans);
-                bool a2=Regex.IsMatch(str,ans+"B");
-                if(!(a1 ||a2)){
                     return 2;
-                }
-                
             }
         }
         foreach(string ans in B3E1){
             bool a=Regex.IsMatch(str,ans);
             if(a){
-                bool a1=Regex.IsMatch(str,"B"+ans);
-                bool a2=Regex.IsMatch(str,ans+"B");
-                if(a1 ||a2){
-                    return 4;
+                bool a1=Regex.IsMatch(str,"E"+ans+"E");
+                if(a1){
+                    return 3;
                 }
-                return 3;
+                return 4;
             }
         }
+        bool two =Regex.IsMatch(str,"EBBE");
+        if(two){
+            return 4;
+        }
+        
         return 5;
     }
     //0: ５連, 1: 両開き４連, 2: ４連, 3:両開き3連　4: 雰囲気的によさげ　５；その他
     int judge_Whiteconnect(string str){
         string[] W4E1=new string[5]{"EWWWW","WEWWW","WWEWW","WWWEW","WWWWE"};
-        string[] W3E1=new string[4]{"EWWW","WEWW","WWEW","WWWE"};
+        string[] W3E1=new string[4]{"WWW","WEWW","WWEW","WWW"};
         bool five_W=Regex.IsMatch(str,"WWWWW");
         if(five_W){
             return 0;
