@@ -14,7 +14,11 @@ public class GameController_AI3 : MonoBehaviour
 
     private float INFINITYVAL=32000;
     private int WINNING = 30000;
+
+    private int start_depth=1;
     public int MAXDEPTH = 1;
+    private int first_search_range=15;
+    public int search_range=5;
     public int size = 15;
     public int[,] squares = new int[16,16];
     private int nextZ, nextX;
@@ -41,7 +45,7 @@ public class GameController_AI3 : MonoBehaviour
     private int center_x=7;
     private int pre_z=7;
     private int pre_x=7;
-    public int search_range=5;
+ 
     private int[,] potentialEvaluation = new int[15, 15]
     {//   0  1  2  3  4  5  6  7  8  9  10 11 12 13 14
         { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },//0
@@ -91,6 +95,7 @@ public class GameController_AI3 : MonoBehaviour
                     {
                         Destroy(stone);
                     }
+                    move_count=0;
                 }
                 else
                 {
@@ -112,6 +117,7 @@ public class GameController_AI3 : MonoBehaviour
                         Destroy(stone);
                     }
                     flag = 0;
+                    move_count=0;
                 }
                 else
                 {
@@ -137,6 +143,7 @@ public class GameController_AI3 : MonoBehaviour
             // Debug.Log(node_count);
             node_count=0;
             line_neighborhood(WHITE,z,x,5);
+            init_count();
             if(flag==1){
                 Debug.Log("Player2 won.");
             }
@@ -156,6 +163,7 @@ public class GameController_AI3 : MonoBehaviour
                     }
                     flag = 0;
                     prohibit_flag=0;
+                    move_count=0;
                 }
                 else
                 {
@@ -177,7 +185,10 @@ public class GameController_AI3 : MonoBehaviour
                 move_count++;
                 currentPlayer = WHITE;
                 // Debug.Log("Player1 : " + x + ", " + z);
+               
                 line_neighborhood(BLACK,z,x,5);
+                init_count();
+                
                 if(prohibit_flag==1){
                     Debug.Log("Player2 won.");
                 }
@@ -203,6 +214,7 @@ public class GameController_AI3 : MonoBehaviour
                     }
                     flag = 0;
                     prohibit_flag=0;
+                    move_count=0;
                 }
                 else
                 {
@@ -231,6 +243,7 @@ public class GameController_AI3 : MonoBehaviour
                         currentPlayer = BLACK;
                         // Debug.Log("Player2 : " + z + ", " + x);
                         line_neighborhood(WHITE,z,x,5);
+                        init_count();
                         if(flag==1){
                             Debug.Log("Player2 won.");
                         }
@@ -248,6 +261,7 @@ public class GameController_AI3 : MonoBehaviour
                         currentPlayer = WHITE;
                         // Debug.Log("Player1 : " + z + ", " + x);
                         line_neighborhood(BLACK,z,x,5);
+                        init_count();
                         if(prohibit_flag==1){
                             Debug.Log("Player2 won.");
                         }
@@ -274,22 +288,63 @@ public class GameController_AI3 : MonoBehaviour
     {
         float score;
         PlayerColor = color;
-        System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
-        sw.Start();
-        score = alphaBetaSearch(0, PlayerColor, -INFINITYVAL, INFINITYVAL,center_z,center_x,pre_z,pre_x);
-        sw.Stop();
-        // StreamWriter txt=new StreamWriter("../depth1rangeall.txt",true);
-        // txt.WriteLine(sw.ElapsedMilliseconds);
-        // txt.Flush();
-        // txt.Close();
-        Debug.Log("Final eval: "+score+","+nextZ+","+nextX);
-    }
+        if(move_count<=2){
+            establish_tactics();
+        }
+        else if(move_count<=10){
+            score = alphaBetaSearch(0, start_depth,first_search_range,PlayerColor, -INFINITYVAL, INFINITYVAL,center_z,center_x,pre_z,pre_x);
 
-    private float alphaBetaSearch(int depth,int color,float alpha,float beta,int cz,int cx,int pz,int px)
+        }
+        else {
+            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+            sw.Start();
+            score = alphaBetaSearch(0, MAXDEPTH,search_range,PlayerColor, -INFINITYVAL, INFINITYVAL,center_z,center_x,pre_z,pre_x);
+            sw.Stop();
+            // StreamWriter txt=new StreamWriter("../depth2rangea3.txt",true);
+            // txt.WriteLine(sw.ElapsedMilliseconds);
+            // txt.Flush();
+            // txt.Close();
+        }
+        
+        // Debug.Log("Final eval: "+score+","+nextZ+","+nextX);
+    }
+    private void establish_tactics(){
+        if(move_count==0){
+            nextZ=7; nextX=7;
+        }
+        else if(move_count==1){
+            int r=Random.Range(0,2);
+            if(r==0){
+                nextZ=7; nextX=8;
+            }
+            else{
+                nextZ=8; nextX=8;
+            }
+        }
+        else if(move_count==2){
+            int r=Random.Range(0,13);
+            switch(r){
+                case(0): if(pre_z==7){nextZ=7; nextX=9;}else{nextZ=7;nextX=5;} break;
+                case(1): if(pre_z==7){nextZ=8; nextX=9;}else{nextZ=6;nextX=5;} break;
+                case(2): if(pre_z==7){nextZ=9; nextX=9;}else{nextZ=5;nextX=5;} break;
+                case(3): if(pre_z==7){nextZ=8; nextX=8;}else{nextZ=6;nextX=6;} break;
+                case(4): nextZ=9; nextX=8; break;
+                case(5): nextZ=8; nextX=7; break;
+                case(6): nextZ=9; nextX=7; break;
+                case(7): nextZ=7; nextX=6; break;
+                case(8): if(pre_z==7){nextZ=8; nextX=6;}else{nextZ=6;nextX=6;} break;
+                case(9): nextZ=9; nextX=6; break;
+                case(10): nextZ=7; nextX=5; break;
+                case(11): nextZ=8; nextX=5; break;
+                case(12): nextZ=9; nextX=5; break;
+            }
+        }
+    }
+    private float alphaBetaSearch(int depth,int max_depth,int range,int color,float alpha,float beta,int cz,int cx,int pz,int px)
     { 
         node_count++;
         float score, eval;
-        if (depth == MAXDEPTH)
+        if (depth == max_depth)
         {
             return remake_evaluate(PlayerColor,(-1)*color, cz,cx,pz,px);
         }
@@ -301,9 +356,9 @@ public class GameController_AI3 : MonoBehaviour
         {
             score = INFINITYVAL;
         }
-        for(int i = cz-search_range; i < cz+search_range+1; ++i)
+        for(int i = cz-range; i < cz+range+1; ++i)
         {
-            for(int j = cx-search_range; j < cx+search_range+1; ++j)
+            for(int j = cx-range; j < cx+range+1; ++j)
             {
                 if(i>=0 && i<size &&j>=0 && j<size){
                     if (squares[i, j] == EMPTY)
@@ -330,8 +385,8 @@ public class GameController_AI3 : MonoBehaviour
                         }
                         else
                         {
-                            eval = alphaBetaSearch(depth + 1, color * (-1), alpha, beta,i,j,cz,cx);
-                            // if(depth==0 &&squares[i,j]!=EMPTY){
+                            eval = alphaBetaSearch(depth + 1, max_depth,range,color * (-1), alpha, beta,i,j,cz,cx);
+                            // if(depth==1 &&squares[i,j]!=EMPTY){
                             //     Debug.Log("depth: "+depth+",eval: "+eval+",now:["+j+"," +i+"], prev: ["+cx+", "+cz);
                             // }                            
                             squares[i, j] = EMPTY;
@@ -384,7 +439,6 @@ public class GameController_AI3 : MonoBehaviour
         
         int plus_or_minus=PlayerColor*nextcolor;
         float eval=0f;
-        init_count();
         eval+=potentialEvaluation[now_i,now_j]*plus_or_minus;
         int rand = Random.Range(0, 5);
         eval += (rand % 5)*plus_or_minus;
@@ -392,33 +446,37 @@ public class GameController_AI3 : MonoBehaviour
         if(prohibit_flag==1){
             //nextcolor==BLACKのみ
             prohibit_flag=0;
-
+            init_count();
             return -INFINITYVAL*plus_or_minus;
         }
         if(flag==1){
             flag=0;
+            init_count();
             return 10*WINNING*plus_or_minus;
         }
         init_count();
         line_neighborhood(nextcolor*(-1),pre_i,pre_j,5);
         if(open4>0){
+            init_count();
             return -INFINITYVAL*plus_or_minus/2;
         }
         else{
             if(normal4>0){
+                init_count();
                 return -INFINITYVAL*plus_or_minus/3;
             }
         }
         init_count();
         line_neighborhood(nextcolor,now_i,now_j,5);
         if(open4>0){
+            init_count();
             return 5*WINNING*plus_or_minus;
         }
         eval+=(normal4*50+open3*40+normal3*20)*plus_or_minus;
         init_count();
         line_neighborhood(nextcolor*(-1),pre_i,pre_j,5);
         eval-=(open3*100+normal3*30)*plus_or_minus;
-
+        init_count();
         return eval;
     }
 
@@ -456,9 +514,9 @@ public class GameController_AI3 : MonoBehaviour
             prohibit_judge(con3);
             con4=judge_Blackconnect(c4);
             prohibit_judge(con4);
-            if(normal4+open4>=2){
-                prohibit_flag=1;
-            }
+            // if(normal4+open4>=2){
+            //     prohibit_flag=1;
+            // }
             if(open3>=2){
                 prohibit_flag=1;
             }
