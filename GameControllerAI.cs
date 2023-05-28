@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using System.IO;
 
-public class GameController_AIv7 : MonoBehaviour
+public class GameController_AI3 : MonoBehaviour
 {
     public int game_count = 8;
 
@@ -16,7 +16,8 @@ public class GameController_AIv7 : MonoBehaviour
     private int WINNING = 30000;
 
     private int start_depth=2;
-    public int MAXDEPTH = 1;
+    public int Black_MAXDEPTH = 1;
+    public int White_MAXDEPTH = 1;
     private int first_search_range=15;
     public int search_range=5;
     public int size = 15;
@@ -27,10 +28,10 @@ public class GameController_AIv7 : MonoBehaviour
     private const int WHITE= -1;
     private const int BLACK = 1;
 
-    public int BLACK_AI = 0;
-    public int WHITE_AI = 0;
+    public int BLACK_AI = 0; // 黒石がAIであるかの情報を保持
+    public int WHITE_AI = 0; // 白石がAIであるかの情報を保持
 
-    private int currentPlayer = BLACK;
+    private int currentPlayer = BLACK; // 現在の黒と白，どちらの手番かの情報を保持
     private int PlayerColor;
 
     private Camera camera_object;
@@ -39,13 +40,14 @@ public class GameController_AIv7 : MonoBehaviour
     public GameObject whiteStone;
     public GameObject blackStone;
 
-    private int flag = 0;
-    private int prohibit_flag=0;
+    private int flag = 0; // ゲーム終了判定に使うフラグ
+    private int prohibit_flag=0; // 禁じ手判定に使うフラグ
     private int center_z=7;
     private int center_x=7;
     private int pre_z=7;
     private int pre_x=7;
- 
+    
+    // evaluate based on board position. 
     private int[,] potentialEvaluation = new int[15, 15]
     {//   0  1  2  3  4  5  6  7  8  9  10 11 12 13 14
         { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },//0
@@ -65,12 +67,12 @@ public class GameController_AIv7 : MonoBehaviour
         { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },//14
     };
 
-    private int open4=0;
-    private int normal4=0;
-    private int open3=0;
-    private int normal3=0;
+    private int open4=0; // 四連で，両端が空いている
+    private int normal4=0; // 四連で，片側が黒石 or boardの端で塞がれている
+    private int open3=0; // 三連で，両端が空いている
+    private int normal3=0; // 三連で，片側が黒石 or boardの端で塞がれている
 
-    private int move_count=0;
+    private int move_count=0; // 現在のゲームが何手目であるかの情報を保持
     private int node_count=0;
     // Start is called before the first frame update
     void Start()
@@ -84,6 +86,7 @@ public class GameController_AIv7 : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // if board is filled with stones
         if(move_count==size*size){
             Debug.Log("Tie Game.");
             if (game_count > 0)
@@ -142,7 +145,7 @@ public class GameController_AIv7 : MonoBehaviour
             }
             // Debug.Log(node_count);
             init_count();
-            line_neighborhood(WHITE,z,x,5);
+            line_nbr(WHITE,z,x,5);
             
             if(flag==1){
                 Debug.Log("Player2 won.");
@@ -186,7 +189,7 @@ public class GameController_AIv7 : MonoBehaviour
                 currentPlayer = WHITE;
                 // Debug.Log("Player1 : " + x + ", " + z);
                 init_count();
-                line_neighborhood(BLACK,z,x,5);
+                line_nbr(BLACK,z,x,5);
                 
                 
                 if(prohibit_flag==1){
@@ -243,7 +246,7 @@ public class GameController_AIv7 : MonoBehaviour
                         currentPlayer = BLACK;
                         // Debug.Log("Player2 : " + z + ", " + x);
                         init_count();
-                        line_neighborhood(WHITE,z,x,5);
+                        line_nbr(WHITE,z,x,5);
                         if(flag==1){
                             Debug.Log("Player2 won.");
                         }
@@ -261,7 +264,7 @@ public class GameController_AIv7 : MonoBehaviour
                         currentPlayer = WHITE;
                         // Debug.Log("Player1 : " + z + ", " + x);
                         init_count();
-                        line_neighborhood(BLACK,z,x,5);
+                        line_nbr(BLACK,z,x,5);
                         
                         if(prohibit_flag==1){
                             Debug.Log("Player2 won.");
@@ -275,6 +278,7 @@ public class GameController_AIv7 : MonoBehaviour
         }
     }
 
+    //initialize board
     public void InitializeArray()
     {
         for (int i = 0; i < size; ++i)
@@ -300,22 +304,40 @@ public class GameController_AIv7 : MonoBehaviour
         else {
             System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
             sw.Start();
-            score = alphaBetaSearch(0, MAXDEPTH,search_range,PlayerColor, -INFINITYVAL, INFINITYVAL,center_z,center_x,pre_z,pre_x);
-            sw.Stop();
-            if(squares[nextZ,nextX]==EMPTY){
-                 Debug.Log(PlayerColor+","+nextX+","+nextZ+","+sw.ElapsedMilliseconds);
+            if(PlayerColor==BLACK){
+                score = alphaBetaSearch(0, Black_MAXDEPTH,search_range,PlayerColor, -INFINITYVAL, INFINITYVAL,center_z,center_x,pre_z,pre_x);
             }
-            // StreamWriter txt=new StreamWriter("../depth4rangeall_v5.txt",true);
+            else{
+                score = alphaBetaSearch(0, White_MAXDEPTH,search_range,PlayerColor, -INFINITYVAL, INFINITYVAL,center_z,center_x,pre_z,pre_x);
+            }
+            sw.Stop();
+            // if(squares[nextZ,nextX]==EMPTY){
+            //      Debug.Log(PlayerColor+","+nextX+","+nextZ+","+sw.ElapsedMilliseconds);
+            // }
+            // StreamWriter txt=new StreamWriter("../depth3rangeall_v8_noalpha.txt",true);
             // txt.WriteLine(sw.ElapsedMilliseconds);
             // txt.Flush();
             // txt.Close();
-        //     if(node_count<2){
-        //     UnityEditor.EditorApplication.isPlaying=false;
-        // }
+            if(node_count<2){
+            InitializeArray();
+            GameObject[] destroy = GameObject.FindGameObjectsWithTag("Stone");
+            foreach (GameObject stone in destroy)
+            {
+                Destroy(stone);
+            }
+            flag = 0;
+            move_count=0;
+            establish_tactics();
+        }
         }
         // Debug.Log(node_count);
-        // Debug.Log(squares[nextZ,nextX]+","+color+",Final eval: "+score+","+nextX+","+nextZ);
+        Debug.Log(squares[nextZ,nextX]+","+color+",Final eval: "+score+","+nextX+","+nextZ);
     }
+
+    /* 
+        AIが次の一手を決める方針(1~3手目)
+        初手は天元，2および3手目は基本珠型に基づく
+    */
     private void establish_tactics(){
         if(move_count==0){
             nextZ=7; nextX=7;
@@ -348,11 +370,13 @@ public class GameController_AIv7 : MonoBehaviour
             }
         }
     }
+
+    // alpha-beta法
     private float alphaBetaSearch(int depth,int max_depth,int range,int color,float alpha,float beta,int cz,int cx,int pz,int px)
     { 
         node_count++;
         init_count();
-        line_neighborhood(color*(-1),cz,cx,5);
+        line_nbr(color*(-1),cz,cx,6);
         int tmp_open4=open4;
         int tmp4=normal4;
         int tmp_open3=open3;
@@ -362,7 +386,7 @@ public class GameController_AIv7 : MonoBehaviour
         float score, eval;
         if (depth == max_depth)
         {
-            return remake_evaluate(PlayerColor,(-1)*color, cz,cx,pz,px);
+            return remake_evaluate(PlayerColor,(-1)*color,depth, cz,cx,pz,px);
         }
         if (color == PlayerColor)
         {
@@ -379,15 +403,15 @@ public class GameController_AIv7 : MonoBehaviour
                 if(i>=0 && i<size &&j>=0 && j<size){
                     if (squares[i, j] == EMPTY)
                     {
-                        if(neighborhood_isStone(i,j))
+                        if(nbr_isStone(i,j))
                         {
                             squares[i, j] = color;
                             init_count();
-                            line_neighborhood(color,i,j,5);
+                            line_nbr(color,i,j,6);
                             tmp1_flag=flag; tmp1_prohibit_flag=prohibit_flag; tmp1_open4=open4; tmp1_4=normal4; tmp1_open3=open3; tmp1_3=normal3;
 
                             init_count();
-                            line_neighborhood(color*(-1),cz,cx,5);
+                            line_nbr(color*(-1),cz,cx,6);
                             if (tmp1_flag==1)
                             {
                                 // if(squares[i,j]!=EMPTY){
@@ -443,7 +467,7 @@ public class GameController_AIv7 : MonoBehaviour
                                     return WINNING/2 - depth;
                                 }
                             }
-                            else if(open3>=tmp_open3 && tmp_open4+tmp4==0 && tmp1_open4+tmp1_4==0 && tmp_open3!=0){
+                            else if(open3>=tmp_open3 && tmp_open4+tmp4==0 && tmp_open3!=0){
                                 // if(squares[i,j]!=EMPTY){
                                 //     Debug.Log("open3,"+squares[i,j]+",eval: "+(-WINNING/2+depth)*PlayerColor*color+",now:["+j+"," +i+"], prev: ["+cx+", "+cz);
                                 // }   
@@ -452,7 +476,7 @@ public class GameController_AIv7 : MonoBehaviour
                                     if(depth>0){return -(WINNING/2-depth);}
                                 }
                                 else{
-                                    return WINNING/2 - depth;
+                                    return WINNING/3 - depth;
                                 }
                             }
                             else if(tmp1_open4>0 && open4+normal4==0 ){
@@ -473,8 +497,8 @@ public class GameController_AIv7 : MonoBehaviour
                                 }
                             }
                             else if(tmp_open4+tmp4+tmp_open3+tmp_3!=0 && 8*open4+4*normal4+2*open3+normal3>=8*tmp_open4+4*tmp4+2*tmp_open3+tmp_3 && tmp1_open4+tmp1_4+tmp1_open3+tmp1_3==0){
-                                // if(squares[i,j]!=EMPTY){
-                                //     Debug.Log(","+open4+normal4+open3+normal3+","+tmp_open4+tmp4+tmp_open3+tmp_3+",2,"+squares[i,j]+",eval: "+(WINNING/2-depth)*PlayerColor*color+",now:["+j+"," +i+"], prev: ["+cx+", "+cz);
+                                // if(depth==2 &&squares[i,j]!=EMPTY){
+                                //     Debug.Log(","+open4+normal4+open3+normal3+","+tmp_open4+tmp4+tmp_open3+tmp_3+",2,"+squares[i,j]+",eval: "+(WINNING/4-depth)*PlayerColor*color+",now:["+j+"," +i+"], prev: ["+cx+", "+cz);
                                 // }  
                                 squares[i, j] = EMPTY;
                                 if(PlayerColor==color){
@@ -487,8 +511,8 @@ public class GameController_AIv7 : MonoBehaviour
                             else
                             {
                                 eval = alphaBetaSearch(depth + 1, max_depth,range,color * (-1), alpha, beta,i,j,cz,cx);
-                                // if(depth==1 &&squares[i,j]!=EMPTY){
-                                //     Debug.Log("color:"+color+",eval: "+eval+",now:["+j+"," +i+"], prev: ["+cx+", "+cz);
+                                // if(squares[i,j]!=EMPTY){
+                                //     Debug.Log("depth:"+depth+"color:"+color+",eval: "+eval+",now:["+j+"," +i+"], prev: ["+cx+", "+cz);
                                 // }                            
                                 squares[i, j] = EMPTY;
                                 if (PlayerColor == color)
@@ -536,45 +560,46 @@ public class GameController_AIv7 : MonoBehaviour
         return score;
     }
     //BLACK =1; WHITE=-1;
-    float remake_evaluate(int PlayerColor,int nextcolor,int now_i,int now_j,int pre_i,int pre_j){
+    float remake_evaluate(int PlayerColor,int nextcolor,int depth,int now_i,int now_j,int pre_i,int pre_j){
         
         int plus_or_minus=PlayerColor*nextcolor;
         float eval=0f;
         eval+=potentialEvaluation[now_i,now_j]*plus_or_minus;
         int rand = Random.Range(0, 5);
         eval += (rand % 5)*plus_or_minus;
-        // init_count();
-        // if(prohibit_flag==1){
-        //     //nextcolor==BLACKのみ
-        //     return -(WINNING-depth)*plus_or_minus/2;
-        // }
-        // if(flag==1){
-        //     flag=0;
-        //     return (WINNING-depth)*plus_or_minus;
-        // }
-        // init_count();
-        // line_neighborhood(nextcolor*(-1),pre_i,pre_j,5);
-        // if(open4>0){
-        //     return -(WINNING-depth)*plus_or_minus/3;
-        // }
-        // else{
-        //     if(normal4>0){
-        //         return -INFINITYVAL*plus_or_minus/4;
-        //     }
-        // }
         init_count();
-        line_neighborhood(nextcolor,now_i,now_j,5);
-        // if(open4>0){
-        //     return (WINNING/2-depth)*plus_or_minus;
-        // }
-        eval+=(normal4*50+open3*40+normal3*20)*plus_or_minus;
+        if(prohibit_flag==1){
+            //nextcolor==BLACKのみ
+            return -(WINNING-depth)*plus_or_minus;
+        }
+        if(flag==1){
+            flag=0;
+            return (WINNING-depth)*plus_or_minus;
+        }
         init_count();
-        line_neighborhood(nextcolor*(-1),pre_i,pre_j,5);
-        eval-=(normal4*1000*open3*100+normal3*30)*plus_or_minus;
+        line_nbr(nextcolor*(-1),pre_i,pre_j,6);
+        if(open4>0){
+            return -(WINNING/2-depth)*plus_or_minus;
+        }
+        else{
+            if(normal4>0){
+                return -(WINNING/2-depth)*plus_or_minus;
+            }
+        }
+        init_count();
+        line_nbr(nextcolor,now_i,now_j,6);
+        if(open4>0){
+            return (WINNING/2-depth)*plus_or_minus;
+        }
+        eval+=(normal4*open3*1000+(open3-1)*500+(normal4-1)*500+normal4*150+open3*150+normal3*50)*plus_or_minus;
+        init_count();
+        line_nbr(nextcolor*(-1),pre_i,pre_j,6);
+        eval-=((normal4+open3)*1500+normal3*30)*plus_or_minus;
         init_count();
         return eval;
     }
-    bool neighborhood_isStone(int i,int j){
+
+    bool nbr_isStone(int i,int j){
         if(i>=j && i+j>=size-1){
             if(j>=1 && squares[i-1,j-1]!=EMPTY){return true;}
             if(squares[i-1,j]!=EMPTY){return true;}
@@ -620,23 +645,28 @@ public class GameController_AIv7 : MonoBehaviour
             else{return false;}
         }
     }
-    void line_neighborhood(int color,int i,int j,int N){
+
+    /*
+        手番の石の色color, 着手する座標(i,j), 探索範囲Nで，探索する
+        (i,j)を中心に，長さNだけ，八方位について探索する
+    */
+    void line_nbr(int color,int i,int j,int N){
         int con1,con2,con3,con4;
         StringBuilder connect1 =new StringBuilder();
         StringBuilder connect2 =new StringBuilder();
         StringBuilder connect3 =new StringBuilder();
         StringBuilder connect4 =new StringBuilder();
         for(int c=0;c<2*N+1;++c){
-            //↑
+            //南北方向
             string str=assign_char(color,i-N+c,j);
             connect1.Append(str);
-            //→
+            //東西方向
             str=assign_char(color,i,j-N+c);
             connect2.Append(str);
-            //↗
+            //南西から北東方向
             str=assign_char(color,i-N+c,j-N+c);
             connect3.Append(str);
-            //↘
+            //北西から南東方向
             str=assign_char(color,i-N+c,j+N-c);
             connect4.Append(str);
         }
@@ -645,6 +675,7 @@ public class GameController_AIv7 : MonoBehaviour
         string c3=connect3.ToString();
         string c4=connect4.ToString();
 
+        // 得られた長さ2N+1の4つの文字列に対して，連結の仕方の判定をする，
         if(color==BLACK){
             con1=judge_Blackconnect(c1);
             prohibit_judge(con1);
@@ -671,10 +702,11 @@ public class GameController_AIv7 : MonoBehaviour
             prohibit_judge(con3);
             prohibit_judge(con4);
         }
-        // init_count();
-        // Debug.Log(con1+", "+con2+", "+con3+", "+con4);
     }
+
+    // 指定された座標(i,j)が，黒石か白石か空白かを調べる
     string assign_char(int color,int i,int j){
+        //(i,j)がboard内の座標
         if(i>=0 && i<size && j>=0 && j<size){
             if(squares[i,j]==WHITE){
                 return "W";
@@ -686,6 +718,7 @@ public class GameController_AIv7 : MonoBehaviour
                 return "E";
             } 
         }
+        //(i,j)がboardの外の場合，壁と見做すために手番の色と逆の色を返す
         if(color==BLACK){
             return "W";
         }
@@ -694,8 +727,10 @@ public class GameController_AIv7 : MonoBehaviour
         }
     }
 
-    //0:5連, 1:両側空き4連, 2:4連, 3:両側空き３連, 4: 3or2 5:その他, 6: 直線状4*2つ,7:6連
-    //0:WIN, [6,7]:Prohibited, 1:リーチ
+    /*
+        黒石の連結の仕方に応じて，値を返す
+        0:5連で勝利, 1:両側空き4連でリーチ, 2:4連, 3:両側空き３連, 4: 3or2 5:その他, 6: 直線状4*2つで禁じ手,7:6連で禁じ手
+    */
     int judge_Blackconnect(string str){
         string[] B4E1=new string[5]{"EBBBB","BEBBB","BBEBB","BBBEB","BBBBE"};
         string[] B3E1=new string[4]{"BBB","BEBB","BBEB","BBB"};
@@ -729,6 +764,10 @@ public class GameController_AIv7 : MonoBehaviour
                     return 2;
             }
         }
+        bool blocked4=Regex.IsMatch(str,"WBBBBW");
+        if(blocked4){
+            return 5;
+        }
         foreach(string ans in B3E1){
             bool a=Regex.IsMatch(str,ans);
             if(a){
@@ -753,7 +792,11 @@ public class GameController_AIv7 : MonoBehaviour
         }
         return 5;
     }
-    //0: ５連, 1: 両開き４連, 2: ４連, 3:両開き3連　4: 雰囲気的によさげ　５；その他
+    
+    /*  
+        白石の連結の仕方に応じて，値を返す．
+        0: ５連, 1: 両開き４連, 2: ４連, 3:両開き3連　4: 3連or両開き2連　５；その他
+    */
     int judge_Whiteconnect(string str){
         string[] W4E1=new string[5]{"EWWWW","WEWWW","WWEWW","WWWEW","WWWWE"};
         string[] W3E1=new string[4]{"WWW","WEWW","WWEW","WWW"};
@@ -770,6 +813,10 @@ public class GameController_AIv7 : MonoBehaviour
             if(four){
                 return 2;
             }
+        }
+        bool blocked4=Regex.IsMatch(str,"BWWWWB");
+        if(blocked4){
+            return 5;
         }
         foreach(string str0 in W3E1){
             bool open_three=Regex.IsMatch(str,"E"+str0+"E");
@@ -795,6 +842,8 @@ public class GameController_AIv7 : MonoBehaviour
         }
         return 5;
     }
+
+    // 禁じ手の判定
     void prohibit_judge(int num){
         switch(num){
             case 6:
@@ -813,6 +862,8 @@ public class GameController_AIv7 : MonoBehaviour
             normal3++; break;
         }
     }
+
+    // 役のカウントの初期化
     void init_count(){
         open4=0;
         normal4=0;
